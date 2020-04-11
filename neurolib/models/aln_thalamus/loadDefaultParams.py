@@ -139,6 +139,8 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     params.Vs = -40.0  # mV
     params.Tref = 1.5  # ms
 
+    params.N_pt = 5.0  # Costa et al. paper to their cortex
+
     # ------------------------------------------------------------------------
     # thalamus node parameters
     # ------------------------------------------------------------------------
@@ -160,6 +162,7 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     params.E_L = -70.0  # mV
     params.E_K = -100.0  # mV
     params.E_Ca = 120.0  # mV
+    params.ctx_thlm_delay = 13.0  # ms
     # specific thalamo-cortical neurons population - TCR (excitatory)
     params.g_T_t = 3.0  # mS/cm^2
     params.g_h = 0.062  # mS/cm^2
@@ -175,6 +178,7 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     params.g_inc = 2.0
     # connectivity
     params.N_tr = 5.0
+    params.N_tp = 2.6
     # noise
     params.d_phi = 0.0
     # specific thalamic reticular nuclei population - TRN (inhibitory)
@@ -182,6 +186,7 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     # connectivity
     params.N_rt = 3.0
     params.N_rr = 25.0
+    params.N_rp = 2.6
     # external input
     params.ext_current_t = 0.0
     params.ext_current_r = 0.0

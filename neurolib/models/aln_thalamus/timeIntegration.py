@@ -134,6 +134,7 @@ def timeIntegration(params):
     Vs = params["Vs"]  # Cutoff or spike voltage value, determines the time of spike (mV)
     Tref = params["Tref"]  # Refractory time (ms)
     taum = C / gL  # membrane time constant
+    N_pt = params["N_pt"]
 
     # thalamus parameters
     tau_thlm = params["tau_thlm"]
@@ -152,6 +153,7 @@ def timeIntegration(params):
     g_T_t = params["g_T_t"]
     g_T_r = params["g_T_r"]
     E_Ca = params["E_Ca"]
+    ctx_thlm_delay = params["ctx_thlm_delay"]
     g_h = params["g_h"]
     g_inc = params["g_inc"]
     E_h = params["E_h"]
@@ -170,6 +172,8 @@ def timeIntegration(params):
     N_rt = params["N_rt"]
     N_tr = params["N_tr"]
     N_rr = params["N_rr"]
+    N_tp = params["N_tp"]
+    N_rp = params["N_rp"]
 
     ext_current_t = params["ext_current_t"]
     ext_current_r = params["ext_current_r"]
@@ -197,6 +201,7 @@ def timeIntegration(params):
 
     ndt_de = np.around(de / dt).astype(int)
     ndt_di = np.around(di / dt).astype(int)
+    ndt_ctx_thlm_delay = np.around(ctx_thlm_delay / dt).astype(int)
 
     rd_exc = np.zeros((N, N))  # kHz  rd_exc(i,j): Connection from jth node to ith
     rd_inh = np.zeros(N)
@@ -324,6 +329,7 @@ def timeIntegration(params):
         Vs,
         Tref,
         taum,
+        N_pt,
         Q_max,
         C1,
         theta,
@@ -339,6 +345,7 @@ def timeIntegration(params):
         g_T_t,
         g_T_r,
         E_Ca,
+        ndt_ctx_thlm_delay,
         g_h,
         g_inc,
         E_h,
@@ -360,6 +367,8 @@ def timeIntegration(params):
         N_rt,
         N_tr,
         N_rr,
+        N_tp,
+        N_rp,
         mufe,
         mufi,
         IA,
@@ -461,6 +470,7 @@ def timeIntegration_njit_elementwise(
     Vs,
     Tref,
     taum,
+    N_pt,
     Q_max,
     C1,
     theta,
@@ -476,6 +486,7 @@ def timeIntegration_njit_elementwise(
     g_T_t,
     g_T_r,
     E_Ca,
+    ndt_ctx_thlm_delay,
     g_h,
     g_inc,
     E_h,
@@ -497,6 +508,8 @@ def timeIntegration_njit_elementwise(
     N_rt,
     N_tr,
     N_rr,
+    N_tp,
+    N_rp,
     mufe,
     mufi,
     IA,
@@ -551,6 +564,10 @@ def timeIntegration_njit_elementwise(
     noise_exc,
     noise_inh,
 ):
+
+    # expect 1 ALN node for now
+    assert N == 1
+
     def _firing_rate(voltage):
         return Q_max / (1.0 + np.exp(-C1 * (voltage - theta) / sigma))
 
@@ -613,6 +630,10 @@ def timeIntegration_njit_elementwise(
             for col in range(N):
                 rowsum = rowsum + Cmat[no, col] * rd_exc[no, col]
                 rowsumsq = rowsumsq + Cmat[no, col] ** 2 * rd_exc[no, col]
+            # thalamic input
+            delayed_thalamic_input = rates_exc[-1, i - ndt_ctx_thlm_delay - 1]
+            rowsum = rowsum + N_pt * delayed_thalamic_input
+            rowsumsq = rowsumsq + N_pt ** 2 * delayed_thalamic_input
 
             # z1: weighted sum of delayed rates, weights=c*K
             z1ee = (
@@ -747,6 +768,8 @@ def timeIntegration_njit_elementwise(
                 mui_ou[no] + (mui_ext_mean - mui_ou[no]) * dt / tau_ou + sigma_ou * sqrt_dt * noise_inh[no]
             )  # mV/ms
 
+        delayed_cortical_input = rates_exc[0, i - ndt_ctx_thlm_delay - 1]
+
         ### thalamus
         # leak current
         I_leak_t = _leak_current(V_t[i - 1])
@@ -799,10 +822,11 @@ def timeIntegration_njit_elementwise(
         d_s_er = ds_er[0]
         d_s_gt = ds_gt[0]
         d_s_gr = ds_gr[0]
-        d_ds_et = 0.0
-        # d_ds_et = gamma_e ** 2 * (N_tp * cortical_rowsum - s_et) - 2 * gamma_e * ds_et
-        d_ds_er = gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] - s_er[0]) - 2 * gamma_e * ds_er[0]
-        # d_ds_er = gamma_e ** 2 * (N_rt * Q_t[i - 1] + N_rp * cortical_rowsum - s_er[0]) - 2 * gamma_e * ds_er[0]
+        d_ds_et = gamma_e ** 2 * (N_tp * delayed_cortical_input - s_et[0]) - 2 * gamma_e * ds_et[0]
+        d_ds_er = (
+            gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] + N_rp * delayed_cortical_input - s_er[0])
+            - 2 * gamma_e * ds_er[0]
+        )
         d_ds_gt = gamma_r ** 2 * (N_tr * rates_inh[-1, i - 1] - s_gt[0]) - 2 * gamma_r * ds_gt[0]
         d_ds_gr = gamma_r ** 2 * (N_rr * rates_inh[-1, i - 1] - s_gr[0]) - 2 * gamma_r * ds_gr[0]
 
