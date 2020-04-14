@@ -703,12 +703,12 @@ def timeIntegration_njit_elementwise(
             mufi_rhs = (mui - mufi[no]) / tau_inh
 
             # rate has to be kHz
-            IA_rhs = (a * (Vmean_exc - EA) - IA[no] + tauA * b * rates_exc[no, i] * 1e-3) / tauA
+            IA_rhs = (a * (Vmean_exc - EA) - IA[no] + tauA * b * rates_exc[no, i]) / tauA
 
             # EQ. 4.43
             if distr_delay:
-                rd_exc_rhs = (rates_exc[no, i] * 1e-3 - rd_exc[no, no]) / tau_de
-                rd_inh_rhs = (rates_inh[no, i] * 1e-3 - rd_inh[no]) / tau_di
+                rd_exc_rhs = (rates_exc[no, i] - rd_exc[no, no]) / tau_de
+                rd_inh_rhs = (rates_inh[no, i] - rd_inh[no]) / tau_di
 
             if filter_sigma:
                 sigmae_f_rhs = (sigmae - sigmae_f) / tau_sigmae_eff
