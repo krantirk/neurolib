@@ -1,8 +1,10 @@
 
 
+import numpy as np
+
+from ..model import Model
 from . import loadDefaultParams as dp
 from . import timeIntegration as ti
-from ..model import Model
 
 
 class ALNThalamusModel(Model):
@@ -87,7 +89,7 @@ class ALNThalamusModel(Model):
     input_vars = ["ext_exc_current", "ext_exc_rate"]
     default_input = "ext_exc_rate"
 
-    def __init__(self, params=None, Cmat=None, Dmat=None, lookupTableFileName=None, seed=None):
+    def __init__(self, params=None, Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, lookupTableFileName=None, seed=None):
         """
         :param params: parameter dictionary of the model
         :param Cmat: Global connectivity matrix (connects E to E)
@@ -106,7 +108,7 @@ class ALNThalamusModel(Model):
 
         if params is None:
             params = dp.loadDefaultParams(
-                Cmat=self.Cmat, Dmat=self.Dmat, lookupTableFileName=self.lookupTableFileName, seed=self.seed
+                Cmat=self.Cmat, Dmat=self.Dmat, thlm_cmat=thlm_cmat, thlm_dmat=thlm_dmat, lookupTableFileName=self.lookupTableFileName, seed=self.seed
             )
 
         super().__init__(integration=integration, params=params)
@@ -115,5 +117,7 @@ class ALNThalamusModel(Model):
         # compute maximum delay of model
         ndt_de = round(self.params["de"] / self.params["dt"])
         ndt_di = round(self.params["di"] / self.params["dt"])
+        thlm_max_delay = np.around(self.params["thlm_dmat"] / self.params["dt"]).max()
+        ctx_thlm_delay = round(self.params["ctx_thlm_delay"] / self.params["dt"])
         max_dmat_delay = super().getMaxDelay()
-        return int(max(max_dmat_delay, ndt_de, ndt_di))
+        return int(max(max_dmat_delay, ndt_de, ndt_di, thlm_max_delay, ctx_thlm_delay))

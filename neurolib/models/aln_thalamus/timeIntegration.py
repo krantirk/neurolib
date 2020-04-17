@@ -212,7 +212,7 @@ def timeIntegration(params):
     # for l in range(N):
     #    Dmat_ndt[l, l] = ndt_de  # if no distributed, this is a fixed value (E-E coupling)
 
-    max_global_delay = max(np.max(Dmat_ndt), ndt_de, ndt_di)
+    max_global_delay = max(np.max(Dmat_ndt), ndt_de, ndt_di, np.max(thlm_dmat_ndt), ndt_ctx_thlm_delay)
     startind = int(max_global_delay + 1)
 
     # state variable arrays, have length of t + startind

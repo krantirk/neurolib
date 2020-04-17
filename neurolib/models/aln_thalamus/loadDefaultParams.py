@@ -58,6 +58,7 @@ def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, look
         params.lengthMat = np.zeros((params.N, params.N))
         # default from cortex - 2.6 as N_rp and N_tp in the original model
         params.thlm_cmat = np.array([2.6])
+        params.thlm_dmat = np.array([13.0])
 
     else:
         # ! only cortical nodes
@@ -69,6 +70,10 @@ def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, look
         np.fill_diagonal(params.Cmat, 0)  # no self connections
         params.N = len(params.Cmat)  # number of nodes
         params.lengthMat = Dmat  # delay matrix
+        assert thlm_cmat is not None
+        assert thlm_dmat is not None
+        assert thlm_cmat.shape[0] == params.N
+        assert thlm_dmat.shape[0] == params.N
         params.thlm_cmat = thlm_cmat
         params.thlm_dmat = thlm_dmat
 
