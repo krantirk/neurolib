@@ -41,6 +41,7 @@ def timeIntegration(params):
     # Connectivity matric
     # Interareal relative coupling strengths (values between 0 and 1), Cmat(i,j) connnection from jth to ith
     Cmat = params["Cmat"]
+    thlm_cmat = params["thlm_cmat"]
     c_gl = params["c_gl"]  # EPSP amplitude between areas
     Ke_gl = params["Ke_gl"]  # number of incoming E connections (to E population) from each area
 
@@ -52,13 +53,16 @@ def timeIntegration(params):
 
     if N == 1:
         Dmat = np.ones((N, N)) * params["de"]
+        thlm_dmat = np.array([params["ctx_thlm_delay"]])
     else:
         Dmat = dp.computeDelayMatrix(
             lengthMat, signalV
         )  # Interareal connection delays, Dmat(i,j) Connnection from jth node to ith (ms)
         Dmat[np.eye(len(Dmat)) == 1] = np.ones(len(Dmat)) * params["de"]
+        thlm_dmat = dp.computeDelayMatrix(params["thlm_dmat"], signalV)
 
     Dmat_ndt = np.around(Dmat / dt).astype(int)  # delay matrix in multiples of dt
+    thlm_dmat_ndt = np.around(thlm_dmat / dt).astype(int)
 
     # ------------------------------------------------------------------------
 
@@ -172,8 +176,6 @@ def timeIntegration(params):
     N_rt = params["N_rt"]
     N_tr = params["N_tr"]
     N_rr = params["N_rr"]
-    N_tp = params["N_tp"]
-    N_rp = params["N_rp"]
 
     ext_current_t = params["ext_current_t"]
     ext_current_r = params["ext_current_r"]
@@ -291,6 +293,7 @@ def timeIntegration(params):
         distr_delay,
         filter_sigma,
         Cmat,
+        thlm_cmat,
         Dmat,
         c_gl,
         Ke_gl,
@@ -367,8 +370,6 @@ def timeIntegration(params):
         N_rt,
         N_tr,
         N_rr,
-        N_tp,
-        N_rp,
         mufe,
         mufi,
         IA,
@@ -405,6 +406,7 @@ def timeIntegration(params):
         Irange,
         N,
         Dmat_ndt,
+        thlm_dmat_ndt,
         t,
         rates_exc,
         rates_inh,
@@ -432,6 +434,7 @@ def timeIntegration_njit_elementwise(
     distr_delay,
     filter_sigma,
     Cmat,
+    thlm_cmat,
     Dmat,
     c_gl,
     Ke_gl,
@@ -508,8 +511,6 @@ def timeIntegration_njit_elementwise(
     N_rt,
     N_tr,
     N_rr,
-    N_tp,
-    N_rp,
     mufe,
     mufi,
     IA,
@@ -546,6 +547,7 @@ def timeIntegration_njit_elementwise(
     Irange,
     N,
     Dmat_ndt,
+    thlm_dmat_ndt,
     t,
     rates_exc,
     rates_inh,
@@ -564,10 +566,6 @@ def timeIntegration_njit_elementwise(
     noise_exc,
     noise_inh,
 ):
-
-    # expect 1 ALN node for now
-    assert N == 1
-
     def _firing_rate(voltage):
         return Q_max / (1.0 + np.exp(-C1 * (voltage - theta) / sigma))
 
@@ -630,7 +628,7 @@ def timeIntegration_njit_elementwise(
             for col in range(N):
                 rowsum = rowsum + Cmat[no, col] * rd_exc[no, col]
                 rowsumsq = rowsumsq + Cmat[no, col] ** 2 * rd_exc[no, col]
-            # thalamic input
+            # thalamic input - TCR is last in rates_exc
             delayed_thalamic_input = rates_exc[-1, i - ndt_ctx_thlm_delay - 1]
             rowsum = rowsum + N_pt * delayed_thalamic_input
             rowsumsq = rowsumsq + N_pt ** 2 * delayed_thalamic_input
@@ -768,7 +766,11 @@ def timeIntegration_njit_elementwise(
                 mui_ou[no] + (mui_ext_mean - mui_ou[no]) * dt / tau_ou + sigma_ou * sqrt_dt * noise_inh[no]
             )  # mV/ms
 
-        delayed_cortical_input = rates_exc[0, i - ndt_ctx_thlm_delay - 1]
+        # cortical sum input
+        cortical_rowsum = 0
+        for col in range(N):
+            cortical_rowsum = cortical_rowsum + thlm_cmat[col] * rates_exc[col, i - thlm_dmat_ndt[col] - 1]
+        # delayed_cortical_input = rates_exc[0, i - ndt_ctx_thlm_delay - 1]
 
         ### thalamus
         # leak current
@@ -822,11 +824,8 @@ def timeIntegration_njit_elementwise(
         d_s_er = ds_er[0]
         d_s_gt = ds_gt[0]
         d_s_gr = ds_gr[0]
-        d_ds_et = gamma_e ** 2 * (N_tp * delayed_cortical_input - s_et[0]) - 2 * gamma_e * ds_et[0]
-        d_ds_er = (
-            gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] + N_rp * delayed_cortical_input - s_er[0])
-            - 2 * gamma_e * ds_er[0]
-        )
+        d_ds_et = gamma_e ** 2 * (cortical_rowsum - s_et[0]) - 2 * gamma_e * ds_et[0]
+        d_ds_er = gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] + cortical_rowsum - s_er[0]) - 2 * gamma_e * ds_er[0]
         d_ds_gt = gamma_r ** 2 * (N_tr * rates_inh[-1, i - 1] - s_gt[0]) - 2 * gamma_r * ds_gt[0]
         d_ds_gr = gamma_r ** 2 * (N_rr * rates_inh[-1, i - 1] - s_gr[0]) - 2 * gamma_r * ds_gr[0]
 

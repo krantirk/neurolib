@@ -1,11 +1,13 @@
+import logging
 import os
-import numpy as np
+
 import h5py
+import numpy as np
 
 from ...utils.collections import dotdict
 
 
-def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None):
+def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, lookupTableFileName=None, seed=None):
     """Load default parameters for a network of aLN nodes.
     :param Cmat: Structural connectivity matrix (adjacency matrix) of coupling strengths, will be normalized to 1. If not given, then a single node simulation will be assumed, defaults to None
     :type Cmat: numpy.ndarray, optional
@@ -15,14 +17,16 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     :type lookUpTableFileName: str, optional
     :param seed: Seed for the random number generator, defaults to None
     :type seed: int, optional
-    
+
     :return: A dictionary with the default parameters of the model
     :rtype: dict
     """
 
     params = dotdict({})
 
-    # Todo: Model metadata
+    # ! Cmat and Dmat are supposed to be cortical! I.e. shape NxN refers to number of cortical nodes,
+    # ! thalamus is extra + 1
+
     # recently added for easier simulation of aln and brian in pypet
     params.model = "aln_thalamus"
     params.name = "aln_thalamus"
@@ -52,12 +56,21 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
         params.N = 1
         params.Cmat = np.zeros((params.N, params.N))
         params.lengthMat = np.zeros((params.N, params.N))
+        # default from cortex - 2.6 as N_rp and N_tp in the original model
+        params.thlm_cmat = np.array([2.6])
 
     else:
+        # ! only cortical nodes
+        logging.warning(
+            "Passed Cmat and Dmat are considered cortical only! Thalamus will be"
+            " added as an extra node to this cortical network."
+        )
         params.Cmat = Cmat.copy()  # coupling matrix
         np.fill_diagonal(params.Cmat, 0)  # no self connections
         params.N = len(params.Cmat)  # number of nodes
         params.lengthMat = Dmat  # delay matrix
+        params.thlm_cmat = thlm_cmat
+        params.thlm_dmat = thlm_dmat
 
     # Signal transmission speed in mm/ms
     params.signalV = 20.0
@@ -178,7 +191,6 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     params.g_inc = 2.0
     # connectivity
     params.N_tr = 5.0
-    params.N_tp = 2.6
     # noise
     params.d_phi = 0.0
     # specific thalamic reticular nuclei population - TRN (inhibitory)
@@ -186,7 +198,6 @@ def loadDefaultParams(Cmat=None, Dmat=None, lookupTableFileName=None, seed=None)
     # connectivity
     params.N_rt = 3.0
     params.N_rr = 25.0
-    params.N_rp = 2.6
     # external input
     params.ext_current_t = 0.0
     params.ext_current_r = 0.0
@@ -317,8 +328,8 @@ def generateRandomICs(N, seed=None):
     siem_init = 0.5 * np.random.uniform(0, 1, (N,))
     siiv_init = 0.01 * np.random.uniform(0, 1, (N,))
     siev_init = 0.01 * np.random.uniform(0, 1, (N,))
-    rates_exc_init = 0.01 * np.random.uniform(0, 1, (N + 1, 1))  # + 1 for thalamus
-    rates_inh_init = 0.01 * np.random.uniform(0, 1, (N + 1, 1))  # + 1 for thalamus
+    rates_exc_init = 0.01 * np.random.uniform(0, 1, (N + 1, 1))  # + 1 for thalamus, TCR is excitatory
+    rates_inh_init = 0.01 * np.random.uniform(0, 1, (N + 1, 1))  # + 1 for thalamus, TRN is inhibitory
 
     # thalamus
     V_t_init = np.array([-68.0])
