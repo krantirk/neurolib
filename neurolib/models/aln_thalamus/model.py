@@ -117,7 +117,15 @@ class ALNThalamusModel(Model):
         # compute maximum delay of model
         ndt_de = round(self.params["de"] / self.params["dt"])
         ndt_di = round(self.params["di"] / self.params["dt"])
-        thlm_max_delay = np.around(self.params["thlm_dmat"] / self.params["dt"]).max()
+
+        if "signalV" in self.params:
+            signalV = self.params["signalV"]
+            if signalV > 0:
+                thlm_dmat = self.params["thlm_dmat"] / signalV
+            else:
+                thlm_dmat = self.params["thlm_dmat"] * 0.0
+        thlm_max_delay = np.around(thlm_dmat / self.params["dt"]).max()
+
         ctx_thlm_delay = round(self.params["ctx_thlm_delay"] / self.params["dt"])
         max_dmat_delay = super().getMaxDelay()
         return int(max(max_dmat_delay, ndt_de, ndt_di, thlm_max_delay, ctx_thlm_delay))

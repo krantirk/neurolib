@@ -82,9 +82,9 @@ def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, look
 
     # PSP current amplitude in (mV/ms) (or nA/[C]) for global coupling
     # connections between areas
-    params.c_gl = 0.3
+    params.c_gl = 0.4
     # number of incoming E connections (to E population) from each area
-    params.Ke_gl = 250.0
+    params.Ke_gl = 252.0
 
     # ------------------------------------------------------------------------
     # local E-I node parameters
@@ -142,8 +142,8 @@ def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, look
     params.Jii_max = -1.64  # mV/ms
 
     # neuron model parameters
-    params.a = 0.0  # nS, can be 15.0
-    params.b = 0.0  # pA, can be 40.0
+    params.a = 15.0  # nS, can be 0.0
+    params.b = 40.0  # pA, can be 0.0
     params.EA = -80.0  # mV
     params.tauA = 200.0  # ms
 
@@ -195,6 +195,7 @@ def loadDefaultParams(Cmat=None, Dmat=None, thlm_cmat=None, thlm_dmat=None, look
     params.n_P = 4.0
     params.g_inc = 2.0
     # connectivity
+    params.c_cortex = 1.0
     params.N_tr = 5.0
     # noise
     params.d_phi = 0.0

@@ -176,6 +176,7 @@ def timeIntegration(params):
     N_rt = params["N_rt"]
     N_tr = params["N_tr"]
     N_rr = params["N_rr"]
+    c_cortex = params["c_cortex"]
 
     ext_current_t = params["ext_current_t"]
     ext_current_r = params["ext_current_r"]
@@ -370,6 +371,7 @@ def timeIntegration(params):
         N_rt,
         N_tr,
         N_rr,
+        c_cortex,
         mufe,
         mufi,
         IA,
@@ -511,6 +513,7 @@ def timeIntegration_njit_elementwise(
     N_rt,
     N_tr,
     N_rr,
+    c_cortex,
     mufe,
     mufi,
     IA,
@@ -824,8 +827,10 @@ def timeIntegration_njit_elementwise(
         d_s_er = ds_er[0]
         d_s_gt = ds_gt[0]
         d_s_gr = ds_gr[0]
-        d_ds_et = gamma_e ** 2 * (cortical_rowsum - s_et[0]) - 2 * gamma_e * ds_et[0]
-        d_ds_er = gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] + cortical_rowsum - s_er[0]) - 2 * gamma_e * ds_er[0]
+        d_ds_et = gamma_e ** 2 * (c_cortex * cortical_rowsum - s_et[0]) - 2 * gamma_e * ds_et[0]
+        d_ds_er = (
+            gamma_e ** 2 * (N_rt * rates_exc[-1, i - 1] + c_cortex * cortical_rowsum - s_er[0]) - 2 * gamma_e * ds_er[0]
+        )
         d_ds_gt = gamma_r ** 2 * (N_tr * rates_inh[-1, i - 1] - s_gt[0]) - 2 * gamma_r * ds_gt[0]
         d_ds_gr = gamma_r ** 2 * (N_rr * rates_inh[-1, i - 1] - s_gr[0]) - 2 * gamma_r * ds_gr[0]
 
