@@ -1,15 +1,12 @@
+import copy
 import logging
-import time
 import unittest
 
 import numpy as np
-import copy
-
 from neurolib.models.aln import ALNModel
-from neurolib.models.hopf import HopfModel
 from neurolib.models.fhn import FHNModel
+from neurolib.models.hopf import HopfModel
 from neurolib.models.wc import WCModel
-
 from neurolib.utils.loadData import Dataset
 
 

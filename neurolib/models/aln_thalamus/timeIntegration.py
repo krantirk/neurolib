@@ -257,11 +257,11 @@ def timeIntegration(params):
     # Save the noise in the rates array to save memory
     rates_exc[:, startind:] = np.random.standard_normal((N + 1, len(t)))
     rates_inh[:, startind:] = np.random.standard_normal((N + 1, len(t)))
-    V_t[:startind] = params["V_t_init"].copy()
-    V_r[:startind] = params["V_r_init"].copy()
 
     rates_exc[:, :startind] = rates_exc_init
     rates_inh[:, :startind] = rates_inh_init
+    V_t[:startind] = params["V_t_init"].copy()
+    V_r[:startind] = params["V_r_init"].copy()
 
     noise_exc = np.zeros((N + 1,))
     noise_inh = np.zeros((N + 1,))
